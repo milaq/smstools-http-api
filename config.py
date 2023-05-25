@@ -33,10 +33,13 @@ class ProductionConfig(Config):
     FAILED   = "/var/spool/sms/failed"
     SENT     = "/var/spool/sms/sent"
 
+    # Whether to enable authentication features
+    AUTH_ENABLED = True
+
     # Users database (htpasswd format)
     # Generate hash: openssl passwd -apr1 PASSWORD
     # username:$apr1$qSS22H6v$sem/.bUQXjGUIIHb.MXLw1
-    HTPASSWD_PATH="/usr/local/etc/smstools-http-api/htpasswd.users"
+    HTPASSWD_PATH = "/usr/local/etc/smstools-http-api/htpasswd.users"
 
     @classmethod
     def init_app(cls, app):
@@ -61,16 +64,14 @@ class DevelopmentConfig(Config):
     FAILED   = "tmp/failed"
     SENT     = "tmp/sent"
 
-    # Users database (htpasswd format)
-    # Generate hash: openssl passwd -apr1 PASSWORD
-    # username:$apr1$qSS22H6v$sem/.bUQXjGUIIHb.MXLw1
-    HTPASSWD_PATH="htpasswd.users"
+    AUTH_ENABLED = False
 
 class TestConfig(Config):
     TESTING = True
     DEBUG = True
     OUTGOING = "outgoing"
     SENT = "sent"
+
     HTPASSWD_PATH = "htpasswd.users"
 
 config = {

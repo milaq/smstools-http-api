@@ -23,6 +23,8 @@ else:
     write_mode = "w"
 
 def access_mobile(mobile):
+    if not current_app.config['AUTH_ENABLED']:
+        return True
     if not 'USER_WHITELIST' in current_app.config.keys():
         # Number access control disabled.
         return True
@@ -35,6 +37,8 @@ def validate_mobile(mobile):
     return re.match(r'^\+?\d+$', mobile) and True
 
 def is_admin(user):
+    if not current_app.config['AUTH_ENABLED']:
+        return True
     if 'ADMIN_ACCOUNTS' in current_app.config and auth.username() in current_app.config['ADMIN_ACCOUNTS']:
         return True
     return False

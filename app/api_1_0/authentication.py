@@ -10,6 +10,8 @@ auth = HTTPBasicAuth()
 
 @auth.verify_password
 def verify_password(login, password):
+    if not current_app.config['AUTH_ENABLED']:
+        return True
     try:
         htpasswd_file = HtpasswdFile(current_app.config['HTPASSWD_PATH'])
     except EnvironmentError:
