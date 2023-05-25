@@ -3,24 +3,12 @@
 
 import re
 import os
-import sys
 import uuid
 from email.message import Message
 from flask import current_app, request, jsonify
 from .authentication import auth
 from .errors import not_found, forbidden
 
-python_ver = sys.version_info
-python3_ver = (3, 0)
-
-if python_ver >= python3_ver:
-    use_python3 = True
-    read_mode = "rb"
-    write_mode = "wb"
-else:
-    use_python3 = False
-    read_mode = "r"
-    write_mode = "w"
 
 def access_mobile(mobile):
     if not current_app.config['AUTH_ENABLED']:
@@ -77,7 +65,7 @@ def get_some_sms(kind, message_id):
     if kind not in current_app.config['KINDS']:
         return not_found(None)
     try:
-        with open(os.path.join(current_app.config[kind.upper()], message_id), read_mode) as fp:
+        with open(os.path.join(current_app.config[kind.upper()], message_id), "rb") as fp:
             header_flag = True
             result = {}
 
@@ -161,11 +149,8 @@ def send_sms(data):
                 m.add_header('Queue', result.get('queue'))
             m.set_payload(text)
 
-            with open(lock_file, write_mode) as fp:
-                if use_python3:
-                    fp.write(m.as_bytes())
-                else:
-                    fp.write(m.as_string())
+            with open(lock_file, "wb") as fp:
+                fp.write(m.as_bytes())
 
             msg_file = lock_file.split('.LOCK')[0]
             os.rename(lock_file, msg_file)
