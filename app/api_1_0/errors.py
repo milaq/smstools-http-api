@@ -32,7 +32,9 @@ def not_found(exception):
 
 @api_1_0.app_errorhandler(405)
 def not_allowed(exception):
-    response = jsonify({'status: ': 405, 'message: ': 'Not allowed: ' + request.url})
+    response = {'status: ': 405, 'message: ': 'Not allowed: ' + request.url}
+    response['reason'] = (exception)
+    response = jsonify(response)
     response.status_code = 405
     return response
 

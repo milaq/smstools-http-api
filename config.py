@@ -20,6 +20,11 @@ class Config:
     #    'lvv': [ '911' ],
     #}
 
+    # Message quota settings
+    #QUOTA_FILENAME = 'message.quota'
+    #QUOTA_MAX_SMS = 100
+    #QUOTA_BILLING_DAY = 1
+
     @staticmethod
     def init_app(app):
         pass

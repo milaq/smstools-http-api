@@ -4,10 +4,12 @@
 import re
 import os
 import uuid
+import time
+import datetime
 from email.message import Message
 from flask import current_app, request, jsonify
 from .authentication import auth
-from .errors import not_found, forbidden
+from .errors import not_found, forbidden, not_allowed, internal_error
 
 
 def access_mobile(mobile):
@@ -134,8 +136,14 @@ def send_sms(data):
                                                   os.path.basename(current_app.config['SENT']), message_id)
 
         if not validate_mobile(mobile):
-            current_app.logger.info('Message from [%s] to [%s] have invalid mobile number' % (auth.username(), mobile))
+            current_app.logger.error('Message from [%s] to [%s] have invalid mobile number' % (auth.username(), mobile))
             result['mobiles'][mobile]['response'] = 'Failed: invalid mobile number'
+            continue
+
+        if quota_enabled() and get_quota()[0] < parts_count:
+            current_app.logger.error(
+                'Message from [%s] to [%s] not sent. Message quota reached: %s' % (auth.username(), mobile, get_quota()))
+            result['mobiles'][mobile]['response'] = 'Failed: message quota reached'
             continue
 
         if access_mobile(mobile):
@@ -157,8 +165,67 @@ def send_sms(data):
             os.chmod(msg_file, 0o660)
             current_app.logger.info('Message from [%s] to [%s] placed to the spooler as [%s]' % (auth.username(), mobile, msg_file))
             result['mobiles'][mobile]['response'] = 'Ok'
+
+            if quota_enabled():
+                write_quota(parts_count)
         else:
-            current_app.logger.info('Message from [%s] to [%s] have forbidden mobile number' % (auth.username(), mobile))
+            current_app.logger.error('Message from [%s] to [%s] have forbidden mobile number' % (auth.username(), mobile))
             result['mobiles'][mobile]['response'] = 'Failed: forbidden mobile number'
 
     return result
+
+
+def quota_enabled():
+    if 'QUOTA_FILENAME' not in current_app.config \
+            or 'QUOTA_MAX_SMS' not in current_app.config \
+            or 'QUOTA_BILLING_DAY' not in current_app.config:
+        return False
+    return True
+
+
+def write_quota(count=1):
+    if not os.path.exists(current_app.config['QUOTA_FILENAME']):
+        open(current_app.config['QUOTA_FILENAME'], 'w').close()
+    with open(current_app.config['QUOTA_FILENAME'], "a") as f:
+        for i in range(count):
+            f.write(str(int(time.time())) + "\n")
+
+
+def get_quota():
+    quota_list = []
+    try:
+        with open(current_app.config['QUOTA_FILENAME'], "r") as f:
+            for line in f:
+                quota_list.append(line)
+    except FileNotFoundError:
+        quota_list = []
+    quota_list = sorted(quota_list)
+    current_date = datetime.datetime.utcnow()
+    quota_day_date = datetime.datetime(current_date.year, current_date.month, int(current_app.config['QUOTA_BILLING_DAY']))
+    quota_date_timestamp = time.mktime(quota_day_date.timetuple())
+    try:
+        quota_day_next = quota_day_date.replace(month=quota_day_date.month + 1)
+    except ValueError:
+        if quota_day_date.month == 12:
+            quota_day_next = quota_day_date.replace(year=quota_day_date.year + 1, month=1)
+        else:
+            raise
+    quota_delta = quota_day_next - current_date
+    quota_count = 0
+    for epoch in quota_list:
+        if int(epoch) >= quota_date_timestamp:
+            quota_count += 1
+    return [int(current_app.config['QUOTA_MAX_SMS']) - quota_count, int(current_app.config['QUOTA_MAX_SMS']), quota_delta.days]
+
+def reset_quota():
+    if not is_admin(auth.username()):
+        return forbidden(None)
+    if not quota_enabled():
+        return not_allowed("quota disabled")
+
+    result = {}
+    try:
+        open(current_app.config['QUOTA_FILENAME'], 'w').close()
+        return {"response": "quota cleared"}
+    except OSError:
+        return internal_error(None)
