@@ -83,7 +83,7 @@ def get_quota_view():
         quota_info = get_quota()
     else:
         return not_allowed("quota disabled")
-    result = {'quota': quota_info[0], 'quota_max': quota_info[1], 'quota_billing_day': quota_info[2]}
+    result = {'quota': quota_info[0], 'quota_max': quota_info[1], 'quota_days_left': quota_info[2]}
     return jsonify(result)
 
 @api_1_0.route('/quota', methods=['DELETE'])
