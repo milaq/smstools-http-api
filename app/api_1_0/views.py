@@ -14,7 +14,7 @@ def monitoring_view():
 
 @api_1_0.route('/sms/<kind>/', methods=['GET'])
 @auth.login_required
-def list_some_sms(kind):
+def list_some_sms_view(kind):
     return list_some_sms(kind)
 
 @api_1_0.route('/sms/<kind>/<message_id>', methods=['GET'])
