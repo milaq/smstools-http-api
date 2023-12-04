@@ -85,6 +85,8 @@ def get_some_sms(kind, message_id):
                 if header_flag == False:
                     if result.get('Alphabet', '').startswith('UCS'):
                         charset = 'utf-16-be'
+                    elif result.get('Alphabet', '').startswith('ISO'):
+                        charset = 'latin'
                     else:
                         # Since UTF-8 is backwards compatible with US-ASCII and
                         # outgoing messages sent from the command line will be
